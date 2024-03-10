@@ -1142,17 +1142,6 @@ namespace Botcraft
 #endif
             expires_timestamp
         };
-
-        LOG_INFO("Cached player certificates still valid!");
-        return { cached["certificates"]["private_key"].get_string(),
-            cached["certificates"]["public_key"].get_string(),
-        #if PROTOCOL_VERSION == 759 /* 1.19 */
-            cached["certificates"]["signature_v1"].get_string(),
-#else
-            cached["certificates"]["signature_v2"].get_string(),
-#endif
-            cached["certificates"]["expires_date"].get<long long int>(),
-        };
     }
 #endif
 
