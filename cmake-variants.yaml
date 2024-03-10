@@ -1,0 +1,35 @@
+buildType:
+  default: release
+  choices:
+    debug:
+      short: Debug
+      long: Emit debug information
+      buildType: Debug
+    release:
+      short: Release
+      long: Optimize generated code
+      buildType: Release
+
+asan:
+  default: no-asan
+  choices:
+    no-asan:
+      short: No Asan
+      long: No address sanitizer
+      settings:
+        Asan: 0
+    asan:
+      short: Asan
+      long: Add address sanitizer
+      settings:
+        Asan: 1
+
+version:
+  default: V1_20_1
+  choices:
+    V1_20_1:
+      short: 1.20.1
+      long: 1.20.1
+      settings:
+        BOTCRAFT_GAME_VERSION: 1.20.1
+        PROTOCOL_VERSION: 763

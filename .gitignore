@@ -6,4 +6,6 @@
 /Assets/*/minecraft/
 /Assets/*/server*/
 /Assets/*/client.jar
+/Assets/*/temp
 /scripts/
+/.vscode/*

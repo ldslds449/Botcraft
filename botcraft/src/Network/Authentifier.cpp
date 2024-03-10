@@ -1074,87 +1074,74 @@ namespace Botcraft
             LOG_INFO("Invalid player certificates cached data");
         }
 
-        // Divided by 1000 because this one is stored in ms
-        // TODO: investigate why it sometimes wrongly detects expired keys as still valid
-        const bool expired = !invalid_cached_values && IsTokenExpired(cached["certificates"]["expires_date"].get<long long int>() / 1000);
+        LOG_INFO("Starting player certificates acquisition process...");
 
-        if (expired)
+        const WebRequestResponse post_response = POSTRequest("api.minecraftservices.com", "/player/certificates",
+            "application/json", "application/json", "Bearer " + mc_token, "");
+
+        if (post_response.status_code != 200)
         {
-            LOG_INFO("Player certificates expired");
+            LOG_ERROR("Response returned with status code " << post_response.status_code
+                << " (" << post_response.status_message << ") during player certificates acquisition:\n"
+                << post_response.response.Dump(4));
+            return { "", "", "", 0};
         }
 
-        // In case there is something wrong in the cached data
-        if (invalid_cached_values || expired)
+        const Json::Value& response = post_response.response;
+
+        if (!response.contains("keyPair"))
         {
-            LOG_INFO("Starting player certificates acquisition process...");
+            LOG_ERROR("Error trying to get player certificates, no keyPair in response");
+            return { "", "", "", 0};
+        }
 
-            const WebRequestResponse post_response = POSTRequest("api.minecraftservices.com", "/player/certificates",
-                "application/json", "application/json", "Bearer " + mc_token, "");
+        if (!response["keyPair"].contains("privateKey"))
+        {
+            LOG_ERROR("Error trying to get player certificates, no privateKey in response");
+            return { "", "", "", 0 };
+        }
 
-            if (post_response.status_code != 200)
-            {
-                LOG_ERROR("Response returned with status code " << post_response.status_code
-                    << " (" << post_response.status_message << ") during player certificates acquisition:\n"
-                    << post_response.response.Dump(4));
-                return { "", "", "", 0};
-            }
+        if (!response["keyPair"].contains("publicKey"))
+        {
+            LOG_ERROR("Error trying to get player certificates, no publicKey in response");
+            return { "", "", "", 0 };
+        }
 
-            const Json::Value& response = post_response.response;
+        if (!response.contains("publicKeySignature"))
+        {
+            LOG_ERROR("Error trying to get player certificates, no publicKeySignature in response");
+            return { "", "", "", 0 };
+        }
 
-            if (!response.contains("keyPair"))
-            {
-                LOG_ERROR("Error trying to get player certificates, no keyPair in response");
-                return { "", "", "", 0};
-            }
+        if (!response.contains("publicKeySignatureV2"))
+        {
+            LOG_ERROR("Error trying to get player certificates, no publicKeySignatureV2 in response");
+            return { "", "", "", 0 };
+        }
 
-            if (!response["keyPair"].contains("privateKey"))
-            {
-                LOG_ERROR("Error trying to get player certificates, no privateKey in response");
-                return { "", "", "", 0 };
-            }
+        if (!response.contains("expiresAt"))
+        {
+            LOG_ERROR("Error trying to get player certificates, no expiresAt in response");
+            return { "", "", "", 0 };
+        }
 
-            if (!response["keyPair"].contains("publicKey"))
-            {
-                LOG_ERROR("Error trying to get player certificates, no publicKey in response");
-                return { "", "", "", 0 };
-            }
+        // Convert expires date in ISO8601 to ms since UNIX epoch
+        const long long int expires_timestamp = Utilities::TimestampMilliFromISO8601(response["expiresAt"].get_string());
+        
+        UpdateCachedPlayerCertificates(login, response["keyPair"]["privateKey"].get_string(),
+            response["keyPair"]["publicKey"].get_string(), response["publicKeySignature"].get_string(),
+            response["publicKeySignatureV2"].get_string(), expires_timestamp
+        );
 
-            if (!response.contains("publicKeySignature"))
-            {
-                LOG_ERROR("Error trying to get player certificates, no publicKeySignature in response");
-                return { "", "", "", 0 };
-            }
-
-            if (!response.contains("publicKeySignatureV2"))
-            {
-                LOG_ERROR("Error trying to get player certificates, no publicKeySignatureV2 in response");
-                return { "", "", "", 0 };
-            }
-
-            if (!response.contains("expiresAt"))
-            {
-                LOG_ERROR("Error trying to get player certificates, no expiresAt in response");
-                return { "", "", "", 0 };
-            }
-
-            // Convert expires date in ISO8601 to ms since UNIX epoch
-            const long long int expires_timestamp = Utilities::TimestampMilliFromISO8601(response["expiresAt"].get_string());
-            
-            UpdateCachedPlayerCertificates(login, response["keyPair"]["privateKey"].get_string(),
-                response["keyPair"]["publicKey"].get_string(), response["publicKeySignature"].get_string(),
-                response["publicKeySignatureV2"].get_string(), expires_timestamp
-            );
-
-            return { response["keyPair"]["privateKey"].get_string(),
-                response["keyPair"]["publicKey"].get_string(),
+        return { response["keyPair"]["privateKey"].get_string(),
+            response["keyPair"]["publicKey"].get_string(),
 #if PROTOCOL_VERSION == 759 /* 1.19 */
-                response["publicKeySignature"].get_string(),
+            response["publicKeySignature"].get_string(),
 #else
-                response["publicKeySignatureV2"].get_string(),
+            response["publicKeySignatureV2"].get_string(),
 #endif
-                expires_timestamp
-            };
-        }
+            expires_timestamp
+        };
 
         LOG_INFO("Cached player certificates still valid!");
         return { cached["certificates"]["private_key"].get_string(),
