@@ -5,6 +5,7 @@
 #include "botcraft/Game/World/World.hpp"
 #include "botcraft/Game/World/Blockstate.hpp"
 #include "botcraft/Network/NetworkManager.hpp"
+#include "botcraft/Utilities/Logger.hpp"
 
 namespace Botcraft
 {
@@ -57,7 +58,7 @@ namespace Botcraft
     }
 
 
-    Status InteractWithBlockImpl(BehaviourClient& client, const Position& pos, const PlayerDiggingFace face, const bool animation)
+    Status InteractWithBlockImpl(BehaviourClient& client, const Position& pos, const PlayerDiggingFace face, const bool animation, const bool auto_move)
     {
         std::shared_ptr<LocalPlayer> local_player = client.GetLocalPlayer();
 
@@ -66,9 +67,17 @@ namespace Botcraft
 
         if (player_hand_pos.SqrDist(Vector3<double>(0.5, 0.5, 0.5) + pos) > 16.0f)
         {
-            // Go in range
-            if (GoTo(client, pos, 4) == Status::Failure)
+            if (auto_move) 
             {
+                // Go in range
+                if (GoTo(client, pos, 4) == Status::Failure)
+                {
+                    return Status::Failure;
+                }
+            }
+            else
+            {
+                LOG_WARNING("Target is too far away.");
                 return Status::Failure;
             }
         }
@@ -132,12 +141,13 @@ namespace Botcraft
         return Status::Success;
     }
 
-    Status InteractWithBlock(BehaviourClient& client, const Position& pos, const PlayerDiggingFace face, const bool animation)
+    Status InteractWithBlock(BehaviourClient& client, const Position& pos, const PlayerDiggingFace face, const bool animation, const bool auto_move)
     {
         constexpr std::array variable_names = {
             "InteractWithBlock.pos",
             "InteractWithBlock.face",
-            "InteractWithBlock.animation"
+            "InteractWithBlock.animation",
+            "InteractWithBlock.auto_move"
         };
 
         Blackboard& blackboard = client.GetBlackboard();
@@ -145,8 +155,9 @@ namespace Botcraft
         blackboard.Set<Position>(variable_names[0], pos);
         blackboard.Set<PlayerDiggingFace>(variable_names[1], face);
         blackboard.Set<bool>(variable_names[2], animation);
+        blackboard.Set<bool>(variable_names[3], auto_move);
 
-        return InteractWithBlockImpl(client, pos, face, animation);
+        return InteractWithBlockImpl(client, pos, face, animation, auto_move);
     }
 
     Status InteractWithBlockBlackboard(BehaviourClient& client)
@@ -154,7 +165,8 @@ namespace Botcraft
         constexpr std::array variable_names = {
             "InteractWithBlock.pos",
             "InteractWithBlock.face",
-            "InteractWithBlock.animation"
+            "InteractWithBlock.animation",
+            "InteractWithBlock.auto_move"
         };
 
         Blackboard& blackboard = client.GetBlackboard();
@@ -165,8 +177,9 @@ namespace Botcraft
         // Optional
         const PlayerDiggingFace face = blackboard.Get<PlayerDiggingFace>(variable_names[1], PlayerDiggingFace::Up);
         const bool animation = blackboard.Get(variable_names[2], false);
+        const bool auto_move = blackboard.Get(variable_names[3], false);
 
-        return InteractWithBlockImpl(client, pos, face, animation);
+        return InteractWithBlockImpl(client, pos, face, animation, auto_move);
     }
 
 

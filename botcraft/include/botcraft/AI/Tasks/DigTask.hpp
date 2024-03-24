@@ -14,7 +14,7 @@ namespace Botcraft
     /// @param send_swing If true, will send swing packets to show other players digging in progress
     /// @param face Digging direction
     /// @return Success if the block is broken, Failure otherwise
-    Status Dig(BehaviourClient& c, const Position& pos, const bool send_swing = false, const PlayerDiggingFace face = PlayerDiggingFace::Up);
+    Status Dig(BehaviourClient& c, const Position& pos, const bool send_swing = false, const PlayerDiggingFace face = PlayerDiggingFace::Up, const bool auto_move = false);
 
     /// @brief Same thing as Dig, but reads its parameters from the blackboard
     /// @param c The client performing the action

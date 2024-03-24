@@ -14,7 +14,7 @@ using namespace ProtocolCraft;
 
 namespace Botcraft
 {
-    Status InteractEntityImpl(BehaviourClient& client, const int entity_id, const Hand hand, const bool swing)
+    Status InteractEntityImpl(BehaviourClient& client, const int entity_id, const Hand hand, const bool swing, const bool auto_move)
     {
         std::shared_ptr<EntityManager> entity_manager = client.GetEntityManager();
 
@@ -33,8 +33,17 @@ namespace Botcraft
 
         while (position.SqrDist(entity_position) > 16.0)
         {
-            if (GoTo(client, entity_position, 3, 0) == Status::Failure)
+            if (auto_move) 
             {
+                // Go in range
+                if (GoTo(client, entity_position, 3, 0) == Status::Failure)
+                {
+                    return Status::Failure;
+                }
+            }
+            else
+            {
+                LOG_WARNING("Target is too far away.");
                 return Status::Failure;
             }
 
@@ -65,12 +74,13 @@ namespace Botcraft
         return Status::Success;
     }
 
-    Status InteractEntity(BehaviourClient& client, const int entity_id, const Hand hand, const bool swing)
+    Status InteractEntity(BehaviourClient& client, const int entity_id, const Hand hand, const bool swing, const bool auto_move)
     {
         constexpr std::array variable_names = {
             "InteractEntity.entity_id",
             "InteractEntity.hand",
-            "InteractEntity.swing"
+            "InteractEntity.swing",
+            "InteractEntity.auto_move"
         };
 
         Blackboard& blackboard = client.GetBlackboard();
@@ -78,8 +88,9 @@ namespace Botcraft
         blackboard.Set<int>(variable_names[0], entity_id);
         blackboard.Set<Hand>(variable_names[1], hand);
         blackboard.Set<bool>(variable_names[2], swing);
+        blackboard.Set<bool>(variable_names[3], auto_move);
 
-        return InteractEntityImpl(client, entity_id, hand, swing);
+        return InteractEntityImpl(client, entity_id, hand, swing, auto_move);
     }
 
     Status InteractEntityBlackboard(BehaviourClient& client)
@@ -87,7 +98,8 @@ namespace Botcraft
         constexpr std::array variable_names = {
             "InteractEntity.entity_id",
             "InteractEntity.hand",
-            "InteractEntity.swing"
+            "InteractEntity.swing",
+            "InteractEntity.auto_move"
         };
 
         Blackboard& blackboard = client.GetBlackboard();
@@ -98,7 +110,8 @@ namespace Botcraft
         // Optional
         const Hand hand = blackboard.Get<Hand>(variable_names[1], Hand::Main);
         const bool swing = blackboard.Get<bool>(variable_names[2], false);
+        const bool auto_move = blackboard.Get<bool>(variable_names[3], false);
 
-        return InteractEntityImpl(client, entity_id, hand, swing);
+        return InteractEntityImpl(client, entity_id, hand, swing, auto_move);
     }
 }

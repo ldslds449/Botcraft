@@ -364,7 +364,7 @@ namespace Botcraft
     }
 
 
-    Status PlaceBlockImpl(BehaviourClient& client, const std::string& item_name, const Position& pos, std::optional<PlayerDiggingFace> face, const bool wait_confirmation, const bool allow_midair_placing)
+    Status PlaceBlockImpl(BehaviourClient& client, const std::string& item_name, const Position& pos, std::optional<PlayerDiggingFace> face, const bool wait_confirmation, const bool allow_midair_placing, const bool auto_move)
     {
         std::shared_ptr<World> world = client.GetWorld();
         std::shared_ptr<InventoryManager> inventory_manager = client.GetInventoryManager();
@@ -377,8 +377,17 @@ namespace Botcraft
 
         if (hand_pos.SqrDist(Vector3<double>(0.5, 0.5, 0.5) + pos) > 16.0f)
         {
-            if (GoTo(client, pos, 4, 0, 1) == Status::Failure)
+            if (auto_move) 
             {
+                // Go in range
+                if (GoTo(client, pos, 4, 0, 1) == Status::Failure)
+            {
+                return Status::Failure;
+            }
+            }
+            else
+            {
+                LOG_WARNING("Target is too far away.");
                 return Status::Failure;
             }
         }
@@ -555,14 +564,15 @@ namespace Botcraft
         return Status::Success;
     }
 
-    Status PlaceBlock(BehaviourClient& client, const std::string& item_name, const Position& pos, std::optional<PlayerDiggingFace> face, const bool wait_confirmation, const bool allow_midair_placing)
+    Status PlaceBlock(BehaviourClient& client, const std::string& item_name, const Position& pos, std::optional<PlayerDiggingFace> face, const bool wait_confirmation, const bool allow_midair_placing, const bool auto_move)
     {
         constexpr std::array variable_names = {
                "PlaceBlock.item_name",
                "PlaceBlock.pos",
                "PlaceBlock.face",
                "PlaceBlock.wait_confirmation",
-               "PlaceBlock.allow_midair_placing"
+               "PlaceBlock.allow_midair_placing",
+               "PlaceBlock.auto_move"
         };
 
         Blackboard& blackboard = client.GetBlackboard();
@@ -572,8 +582,9 @@ namespace Botcraft
         blackboard.Set<std::optional<PlayerDiggingFace>>(variable_names[2], face);
         blackboard.Set<bool>(variable_names[3], wait_confirmation);
         blackboard.Set<bool>(variable_names[4], allow_midair_placing);
+        blackboard.Set<bool>(variable_names[5], auto_move);
 
-        return PlaceBlockImpl(client, item_name, pos, face, wait_confirmation, allow_midair_placing);
+        return PlaceBlockImpl(client, item_name, pos, face, wait_confirmation, allow_midair_placing, auto_move);
     }
 
     Status PlaceBlockBlackboard(BehaviourClient& client)
@@ -583,7 +594,8 @@ namespace Botcraft
                "PlaceBlock.pos",
                "PlaceBlock.face",
                "PlaceBlock.wait_confirmation",
-               "PlaceBlock.allow_midair_placing"
+               "PlaceBlock.allow_midair_placing",
+               "PlaceBlock.auto_move"
         };
 
         Blackboard& blackboard = client.GetBlackboard();
@@ -596,9 +608,10 @@ namespace Botcraft
         const std::optional<PlayerDiggingFace> face = blackboard.Get<std::optional<PlayerDiggingFace>>(variable_names[2], PlayerDiggingFace::Up);
         const bool wait_confirmation = blackboard.Get<bool>(variable_names[3], false);
         const bool allow_midair_placing = blackboard.Get<bool>(variable_names[4], false);
+        const bool auto_move = blackboard.Get<bool>(variable_names[5], false);
 
 
-        return PlaceBlockImpl(client, item_name, pos, face, wait_confirmation, allow_midair_placing);
+        return PlaceBlockImpl(client, item_name, pos, face, wait_confirmation, allow_midair_placing, auto_move);
     }
 
 

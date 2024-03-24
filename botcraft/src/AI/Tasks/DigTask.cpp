@@ -18,7 +18,7 @@ using namespace ProtocolCraft;
 
 namespace Botcraft
 {
-    Status DigImpl(BehaviourClient& c, const Position& pos, const bool send_swing, const PlayerDiggingFace face)
+    Status DigImpl(BehaviourClient& c, const Position& pos, const bool send_swing, const PlayerDiggingFace face, const bool auto_move)
     {
         std::shared_ptr<LocalPlayer> local_player = c.GetLocalPlayer();
         // Get hand (?) pos to check the distance to the center of the target block
@@ -27,9 +27,17 @@ namespace Botcraft
 
         if (hand_pos.SqrDist(Vector3<double>(0.5, 0.5, 0.5) + pos) > 20.0f)
         {
-            // Go in range
-            if (GoTo(c, pos, 4) == Status::Failure)
+            if (auto_move) 
             {
+                // Go in range
+                if (GoTo(c, pos, 4) == Status::Failure)
+                {
+                    return Status::Failure;
+                }
+            }
+            else
+            {
+                LOG_WARNING("Target is too far away.");
                 return Status::Failure;
             }
         }
@@ -193,12 +201,13 @@ namespace Botcraft
         return Status::Success;
     }
 
-    Status Dig(BehaviourClient& c, const Position& pos, const bool send_swing, const PlayerDiggingFace face)
+    Status Dig(BehaviourClient& c, const Position& pos, const bool send_swing, const PlayerDiggingFace face, const bool auto_move)
     {
         constexpr std::array variable_names = {
             "Dig.pos",
             "Dig.send_swing",
-            "Dig.face"
+            "Dig.face",
+            "Dig.auto_move"
         };
 
         Blackboard& blackboard = c.GetBlackboard();
@@ -206,8 +215,9 @@ namespace Botcraft
         blackboard.Set<Position>(variable_names[0], pos);
         blackboard.Set<bool>(variable_names[1], send_swing);
         blackboard.Set<PlayerDiggingFace>(variable_names[2], face);
+        blackboard.Set<bool>(variable_names[3], auto_move);
 
-        return DigImpl(c, pos, send_swing, face);
+        return DigImpl(c, pos, send_swing, face, auto_move);
     }
 
     Status DigBlackboard(BehaviourClient& c)
@@ -215,7 +225,8 @@ namespace Botcraft
         constexpr std::array variable_names = {
             "Dig.pos",
             "Dig.send_swing",
-            "Dig.face"
+            "Dig.face",
+            "Dig.auto_move"
         };
 
         Blackboard& blackboard = c.GetBlackboard();
@@ -226,7 +237,8 @@ namespace Botcraft
         // Optional
         const bool send_swing = blackboard.Get<bool>(variable_names[1], false);
         const PlayerDiggingFace face = blackboard.Get<PlayerDiggingFace>(variable_names[2], PlayerDiggingFace::Up);
+        const bool auto_move = blackboard.Get<bool>(variable_names[3], false);
 
-        return DigImpl(c, pos, send_swing, face);
+        return DigImpl(c, pos, send_swing, face, auto_move);
     }
 }
