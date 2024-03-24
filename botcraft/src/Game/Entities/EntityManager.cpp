@@ -411,7 +411,7 @@ namespace Botcraft
 
         if (entity == nullptr)
         {
-            LOG_WARNING("Trying to set equipment of an unexisting entity");
+            // LOG_WARNING("Trying to set equipment of an unexisting entity");
         }
         else
         {
