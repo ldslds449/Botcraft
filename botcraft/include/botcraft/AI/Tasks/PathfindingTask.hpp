@@ -18,7 +18,7 @@ namespace Botcraft
     /// @return A vector of <feet block position, Y position> to go through to reach end +/- min_end_dist. If not possible, will return a path to get as close as possible
     std::vector<std::pair<Position, float>> FindPath(const BehaviourClient& client, const Position& start, const Position& end, const int dist_tolerance, const int min_end_dist, const int min_end_dist_xz, const bool allow_jump);
 
-    /// @brief Find a path to a position and navigate to it.
+    /// @brief Find a path to a block position and navigate to it.
     /// @param client The client performing the action
     /// @param goal The end goal
     /// @param dist_tolerance If != 0 and the distance between final position and goal is < dist_tolerance, return Success even if goal is not reached.
@@ -34,6 +34,21 @@ namespace Botcraft
     /// @param client The client performing the action
     /// @return Success if goal is reached, Failure otherwise
     Status GoToBlackboard(BehaviourClient& client);
+
+
+    /// @brief Find a path to a position and navigate to it. Will first move to block center, then adjust to be as close as possible to goal on X/Z axis. Gravity may prevent reaching Y target.
+    /// @param client The client performing the action
+    /// @param goal The end goal
+    /// @param allow_jump If true, allow to jump above 1-wide gaps
+    /// @param sprint If true, the bot will sprint/swim when possible
+    /// @param speed_factor Multiply vanilla speed if different from 1.0
+    /// @return Success if goal is reached, Failure otherwise
+    Status GoToDouble(BehaviourClient& client, const Vector3<double>& goal, const bool allow_jump = true, const bool sprint = true, const float speed_factor = 1.0f);
+
+    /// @brief Same thing as GoToDouble, but reads its parameters from the blackboard
+    /// @param client The client performing the action
+    /// @return Success if goal is reached, Failure otherwise
+    Status GoToDoubleBlackboard(BehaviourClient& client);
 
 
     /// @brief Turn the camera to look at a given target and send the new rotation to the server

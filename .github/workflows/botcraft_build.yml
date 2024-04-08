@@ -21,6 +21,8 @@ on:
 env:
   BUILD_TYPE: Release
   CMAKE_GENERATOR: ${{ inputs.os == 'windows-latest' && 'Visual Studio 17 2022' || 'Unix Makefiles' }}
+  VERSION: ${{ inputs.version }}
+  ISSUE_URL: ${{ inputs.issue }}
 
 jobs:
   # Make sure dependencies are in cache
@@ -58,7 +60,7 @@ jobs:
         run: >
           cmake -G "$CMAKE_GENERATOR"
           -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-          -DBOTCRAFT_GAME_VERSION=${{ inputs.version }}
+          -DBOTCRAFT_GAME_VERSION="$VERSION"
           -DBOTCRAFT_USE_OPENGL_GUI=ON
           -DBOTCRAFT_USE_IMGUI=ON
           -DBOTCRAFT_COMPRESSION=ON
@@ -200,7 +202,7 @@ jobs:
         run: >
           cmake -G "$CMAKE_GENERATOR"
           -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-          -DBOTCRAFT_GAME_VERSION=${{ inputs.version }}
+          -DBOTCRAFT_GAME_VERSION="$VERSION"
           -DBOTCRAFT_USE_OPENGL_GUI=ON
           -DBOTCRAFT_USE_IMGUI=ON
           -DBOTCRAFT_COMPRESSION=ON
@@ -236,7 +238,7 @@ jobs:
           echo -en '\n' >> body.txt
           echo -en '\n' >> body.txt
           echo @${{ github.repository_owner }} you might want to take a look. >> body.txt
-          gh issue comment ${{ inputs.issue }} --repo ${{ github.repository }} --body-file body.txt
+          gh issue comment $ISSUE_URL --repo ${{ github.repository }} --body-file body.txt
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -257,7 +259,7 @@ jobs:
           retention-days: 1
 
       - name: Cache build directory
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: ${{ runner.workspace }}/build
           key: build_cache_${{ runner.os }}_${{ inputs.version }}_${{ github.run_id }}
@@ -272,7 +274,7 @@ jobs:
         with:
           fetch-depth: 1
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -288,7 +290,7 @@ jobs:
         run: cmake -E make_directory ${{ runner.workspace }}/build
 
       - name: Restore build folder
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ runner.workspace }}/build
           key: build_cache_${{ runner.os }}_${{ inputs.version }}_${{ github.run_id }}
@@ -307,7 +309,7 @@ jobs:
           echo -en '\n' >> body.txt
           echo -en '\n' >> body.txt
           echo @${{ github.repository_owner }} you might want to take a look. >> body.txt
-          gh issue comment ${{ github.event.inputs.issue }} --repo ${{ github.repository }} --body-file body.txt
+          gh issue comment $ISSUE_URL --repo ${{ github.repository }} --body-file body.txt
         env:
           GH_TOKEN: ${{ github.token }}
 
